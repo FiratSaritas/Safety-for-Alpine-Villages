@@ -10,6 +10,7 @@ from sklearn.neural_network import MLPRegressor
 from lightgbm.sklearn import LGBMRegressor
 from xgboost.sklearn import XGBRegressor
 from catboost import CatBoostRegressor
+from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -23,21 +24,35 @@ warnings.filterwarnings("ignore", category=DataConversionWarning)
 
 class TooLazyForRegression(object):
     """
-    This class is for the purpose to test multiple models in one iteration over the dataset
-    and
-    """
-    all_models = [LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge,
-                  SVR, KNeighborsRegressor, DecisionTreeRegressor, ExtraTreeRegressor,
-                  RandomForestRegressor, BaggingRegressor, GradientBoostingRegressor, MLPRegressor,
-                  LGBMRegressor, XGBRegressor, CatBoostRegressor(verbose=False)]
 
-    def __init__(self, target_col, feature_cols,
+    This class is for the purpose to test multiple models in at once on the dataset.
+    It should provide a clue what types of model fit to the dataset the best.
+
+    """
+    all_models = dict(all=[LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge,
+                           SVR, KNeighborsRegressor, DecisionTreeRegressor, ExtraTreeRegressor,
+                           RandomForestRegressor, BaggingRegressor, GradientBoostingRegressor, MLPRegressor,
+                           LGBMRegressor, XGBRegressor, CatBoostRegressor],
+                      linear=[LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge, SVR],
+                      tree=[DecisionTreeRegressor, ExtraTreeRegressor, RandomForestRegressor, BaggingRegressor,
+                            GradientBoostingRegressor, LGBMRegressor, XGBRegressor, CatBoostRegressor],
+                      neighbor=[KNeighborsRegressor],
+                      neuronal=[MLPRegressor])
+
+    def __init__(self, target_col: str, feature_cols: list,
                  save_path='lazy_report.json',
-                 sample_size=30000,
+                 sample_size='all',
+                 fit_model_class='all',
                  cross_val_splits=5, n_threads=5,
                  scorer_metrics=('r2', 'neg_mean_absolute_error'),
                  save_estimator=False):
         """
+        After initialization of this class call the method generate_report() to run the model fits
+        on the dataset.
+        After the JSON report was generated you can call all all other methods like plot_reports()
+        It is possible to also initiate the class only and call the plot_reports() if save_path JSON
+        was generated in another run.
+
 
         Parameters
         ----------
@@ -45,19 +60,22 @@ class TooLazyForRegression(object):
             Prediction Target Column
 
         feature_cols: list
+            Feature columns for the model.
 
         save_path:
-            path where to save model reports
+            Path where to save model reports
 
         sample_size: int or str
-            sample size of data to be taken or just 'all' for
-            all data
+            sample size of data to be taken or just "all" for all data
+
+        fit_model_class: str
+            One of: "all", "linear", "tree", "neighbor", "neuronal"
 
         cross_val_splits:
-            number of splits for cv
+            Number of splits for cv
 
         n_threads:
-            multiple threads use for crossvalidation
+            Multiple threads use for crossvalidation
 
         scorer_metrics: tuple
             Tuple of sklearn metrics, Check on Sklearn which metrics
@@ -70,6 +88,7 @@ class TooLazyForRegression(object):
         self.target_col = target_col
         self.feature_cols = feature_cols
         self.sample_size = sample_size
+        self.fit_model_class = fit_model_class
         self.cross_val_splits = cross_val_splits
         self.n_threads = n_threads
         self.scorer_metrics = scorer_metrics
@@ -97,7 +116,7 @@ class TooLazyForRegression(object):
         X, y = df[self.feature_cols], df[self.target_col].to_numpy()
 
         cv_results = {}
-        with tqdm(TooLazyForRegression.all_models) as t:
+        with tqdm(TooLazyForRegression.all_models[self.fit_model_class]) as t:
             for model in t:
                 t.set_description(desc=f'Fitting {model.__name__}')
                 try:
@@ -110,11 +129,11 @@ class TooLazyForRegression(object):
                                          n_jobs=self.n_threads,
                                          return_estimator=self.save_estimator)
                     if self.save_estimator:
-                        self.estimators[model.__name__] = res[0]
-                        del res[0]
+                        self.estimators[model.__name__] = res['estimator']
+                        del res['estimator']
 
                     # Set negative metric to positive and delete obj
-                    for key in cv_results.keys():
+                    for key in res.keys():
                         if key[:3] == 'neg':
                             res[key[4:]] = np.abs(res[key[4:]])
                             del res[key]
@@ -149,7 +168,11 @@ class TooLazyForRegression(object):
         -------
         plot: plt.plot_object
         """
-        report = pd.read_json(self.save_path)
+        try:
+            report = pd.read_json(self.save_path)
+        except FileNotFoundError:
+            raise FileNotFoundError('Call method generate_report() first or set save_path attribute to an existing JSON-file')
+
         self.report = report
         report = report.explode(column=report.columns.to_list()).reset_index()
         report = report.rename(columns={'index': 'scorer'})
@@ -168,27 +191,46 @@ class TooLazyForRegression(object):
             tmp = report[report['scorer'] == metric_names[i]]
             p = sns.boxplot(data=tmp, x='score', y='model', color='lightskyblue')
 
-            p.set_title(f'{metric_names[i]}', loc='left', fontsize=13)
+            p.set_title(f'{metric_names[i]} cross-validated on {self.cross_val_splits} folds',
+                        loc='left', fontsize=13)
             sns.despine()
             p.set_xlabel('')
             p.set_ylabel(f'Score')
 
-        plt.subplots_adjust(hspace=.2)
+        plt.subplots_adjust(hspace=.4)
         plt.show()
 
 
-    def plot_residuals(self):
+    def plot_residuals(self, X, y, test_size=.2):
         """
 
         Returns
         -------
 
         """
-        if str(self.estimators) == '{}' and self.save_estimator == False:
+        if str(self.estimators) == '{}' or self.save_estimator == False:
             raise NotImplementedError('Initiate Class with param save_estimator = True')
         else:
-            pass
+            _, X_test, _, y_test = train_test_split(X, y, test_size=test_size)
+            ncols = 3
+            nrows = int(len(TooLazyForRegression.all_models) / ncols) + 1
 
+            fig = plt.subplots(figsize=(20, 4*nrows))
+            for i, key in enumerate(self.estimators.keys()):
+                y_pred = self.estimators[key][0].predict(X_test)
+                resid = y_test - y_pred
+                resid = np.sort(resid)
+
+                plt.subplot(nrows, ncols, i+1)
+                p = sns.scatterplot(x=y_pred, y=resid, alpha=.3)
+                plt.hlines(y=0, xmax=np.max(y_pred), xmin=np.min(y_pred),
+                           linestyles='--', colors='grey')
+                p.set_title(f'{key} Residual Plot')
+                p.set_xlabel(r'$\hat{y}$')
+                p.set_ylabel(r'Residual $\epsilon$')
+
+            plt.subplots_adjust(hspace=.3)
+            plt.show()
 
 
 if __name__ == '__main__':
@@ -201,5 +243,6 @@ if __name__ == '__main__':
 
     lazy = TooLazyForRegression(save_path='lazy_report.json',
                                 target_col='size_mm', feature_cols=feature_cols,
-                                sample_size=30000, cross_val_splits=5, n_threads=5)
+                                sample_size=1000, cross_val_splits=5, n_threads=5,
+                                save_estimator=True)
     lazy.generate_report(df=data)
