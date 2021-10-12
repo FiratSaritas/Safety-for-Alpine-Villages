@@ -219,10 +219,9 @@ class TooLazyForRegression(object):
             for i, key in enumerate(self.estimators.keys()):
                 y_pred = self.estimators[key][0].predict(X_test)
                 resid = y_test - y_pred
-                resid = np.sort(resid)
 
                 plt.subplot(nrows, ncols, i+1)
-                p = sns.scatterplot(x=y_pred, y=resid, alpha=.3)
+                p = sns.scatterplot(x=y_pred, y=resid, alpha=.3, color='lightskyblue')
                 plt.hlines(y=0, xmax=np.max(y_pred), xmin=np.min(y_pred),
                            linestyles='--', colors='grey')
                 p.set_title(f'{key} Residual Plot')
