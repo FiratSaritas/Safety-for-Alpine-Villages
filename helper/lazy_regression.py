@@ -10,7 +10,6 @@ from sklearn.neural_network import MLPRegressor
 from lightgbm.sklearn import LGBMRegressor
 from xgboost.sklearn import XGBRegressor
 from catboost import CatBoostRegressor
-from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -26,7 +25,7 @@ class TooLazyForRegression(object):
     """
 
     This class is for the purpose to test multiple models in at once on the dataset.
-    It should provide a clue what types of model fit to the dataset the best.
+    It should provide a clue what types of model fit to the dataset best.
 
     """
     all_models = dict(all=[LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge,
@@ -134,8 +133,11 @@ class TooLazyForRegression(object):
 
                     # Set negative metric to positive and delete obj
                     for key in res.keys():
-                        if key[:3] == 'neg':
-                            res[key[4:]] = np.abs(res[key[4:]])
+                        if 'neg_' in key:
+                            new_key = key.split('_')
+                            new_key.remove('neg')
+                            new_key = '_'.join(new_key)
+                            res[new_key] = np.abs(res[key])
                             del res[key]
 
                     # Type conversion of arrays
@@ -154,7 +156,6 @@ class TooLazyForRegression(object):
             json.dump(obj=cv_results, fp=json_file)
         self.report = pd.read_json(self.save_path)
 
-
     def plot_report(self, plot_include_time=False):
         """
         Plots Report from JSON Report which was constructed in the generate_report() Method.
@@ -171,7 +172,8 @@ class TooLazyForRegression(object):
         try:
             report = pd.read_json(self.save_path)
         except FileNotFoundError:
-            raise FileNotFoundError('Call method generate_report() first or set save_path attribute to an existing JSON-file')
+            raise FileNotFoundError('Call method generate_report() first or set save_path attribute to an '
+                                    'existing JSON-file')
 
         self.report = report
         report = report.explode(column=report.columns.to_list()).reset_index()
@@ -185,40 +187,41 @@ class TooLazyForRegression(object):
         ncols = 1
         nrows = int(len(metric_names) / ncols) + 1
 
-        fig = plt.subplots(figsize=(18, 5 * nrows))
+        fig = plt.subplots(figsize=(16, 5 * nrows))
         for i in range(len(metric_names)):
             plt.subplot(nrows, ncols, i + 1)
             tmp = report[report['scorer'] == metric_names[i]]
             p = sns.boxplot(data=tmp, x='score', y='model', color='lightskyblue')
 
-            p.set_title(f'{metric_names[i]} cross-validated on {self.cross_val_splits} folds',
+            p.set_title(f'<{metric_names[i].upper()}>  cross-validated on {self.cross_val_splits} folds',
                         loc='left', fontsize=13)
             sns.despine()
-            p.set_xlabel('')
-            p.set_ylabel(f'Score')
+            p.set_xlabel(metric_names[i])
+            p.set_ylabel('')
 
         plt.subplots_adjust(hspace=.4)
         plt.show()
 
 
-    def plot_residuals(self, X, y, test_size=.2):
+    def plot_residuals(self, data):
         """
 
         Returns
         -------
 
         """
-        if str(self.estimators) == '{}' or self.save_estimator == False:
+        if str(self.estimators) == '{}' or self.save_estimator is False:
             raise NotImplementedError('Initiate Class with param save_estimator = True')
         else:
-            _, X_test, _, y_test = train_test_split(X, y, test_size=test_size)
+            X = data[self.feature_cols]
+            y = data[self.target_col]
             ncols = 3
             nrows = int(len(TooLazyForRegression.all_models) / ncols) + 1
 
             fig = plt.subplots(figsize=(20, 4*nrows))
             for i, key in enumerate(self.estimators.keys()):
-                y_pred = self.estimators[key][0].predict(X_test)
-                resid = y_test - y_pred
+                y_pred = self.estimators[key][0].predict(X)
+                resid = y - y_pred
 
                 plt.subplot(nrows, ncols, i+1)
                 p = sns.scatterplot(x=y_pred, y=resid, alpha=.3, color='lightskyblue')
@@ -240,8 +243,9 @@ if __name__ == '__main__':
     feature_cols.remove('size_mm')
     feature_cols.remove('start_time')
 
-    lazy = TooLazyForRegression(save_path='lazy_report.json',
+    lazy = TooLazyForRegression(save_path='../eda/lazy_report.json',
                                 target_col='size_mm', feature_cols=feature_cols,
+                                fit_model_class='linear',
                                 sample_size=1000, cross_val_splits=5, n_threads=5,
                                 save_estimator=True)
     lazy.generate_report(df=data)

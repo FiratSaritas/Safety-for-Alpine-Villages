@@ -11,7 +11,7 @@ data_files = [f for f in data_files if '.txt' in f]
 
 # Make new dir report if not exists
 if 'reports' not in os.listdir():
-    os.mkdir('reports')
+    os.mkdir('../eda/reports')
 
 for file in data_files:
     # Read dataset
