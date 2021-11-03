@@ -36,7 +36,7 @@ def multiprocessor_wrapper(func_, iterable_: list, processors=3):
     return pd.DataFrame.from_records(res)
 
 
-def transform_feature(df: pd.DataFrame):
+def transform_extracted_features(df: pd.DataFrame):
     """
     Transforms given feature Dataframe to consistent shape for given Data by WSL.
 
@@ -103,6 +103,68 @@ def mp_extract_chroma_features(sample: str):
                      chroma_stft_std=chroma_stft_std)
 
     return data_dict
+
+
+def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: list, 
+                                               create_one_sensor_feature=True, n_processes=4) -> pd.DataFrame:
+    """
+    
+    This function extracts all features per Sensor type with the maximum amplitude (mab).
+    After the extraction from each feature it adds it to the given dataframe and returns it.
+    
+    params:
+    -------------
+    df: pd.DataFrame
+        Dataframe to extract max features from
+    
+    sensor_types:
+        list of list. i.e.  [['G01', 'G02'], ['M01'], ['S01']]
+    
+    create_one_sensor_feature: Bool
+        
+    
+    n_processes: int
+        Number of concurrent processes should be used
+        
+    returns:
+    -------------
+    df: pd.DataFrame
+        Dataframe with concatenated max feature Values at last column position for each sensor type.
+    
+    """
+    # List w. all columns
+    all_columns = df.columns.to_list()
+    
+    for types in sensor_types:
+        if not create_one_sensor_feature and len(types) == 1:
+            print(f'INFO || Not Creating Max-Features for: {types}')
+            continue
+            
+        tmp = df[['mab_'+t for t in types]]
+        
+        # Extract maximum argument
+        max_val_sensor = np.argmax(tmp.to_numpy(), axis=1) 
+        max_sensors_per_row = [types[s] for s in max_val_sensor]
+
+        # Create new feature for each feature with sensors with max each
+        ## Create iterable for MP
+        max_sensors_per_row = list(zip(np.arange(len(max_sensors_per_row)), max_sensors_per_row))
+        
+        ## Define inner func for MP
+        def extract_max_feature_mp(max_sensor, df=df):
+            max_row = df.loc[max_sensor[0], [col for col in df.columns if max_sensor[1] in col]].to_numpy()
+            return max_row
+        
+        # Extract features with MP
+        with Pool(processes=n_processes) as pool:
+            res_mp = pool.map(func=extract_max_feature_mp, iterable=max_sensors_per_row)
+        
+        # Create and concat extracted Features with df
+        new_feat_df = pd.DataFrame.from_records(data=res_mp, columns=['max_' + '_'.join(col.split('_')[:-1])+ '_' +
+                                                    types[0][0] for col in df.columns if types[0] in col])
+        
+    return df
+
 
 
 
