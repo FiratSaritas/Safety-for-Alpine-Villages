@@ -17,7 +17,9 @@ for file in data_files:
     # Read dataset
     df = pd.read_table(f'../data/{file}', sep=' ')
     # Generate Report
-    profile = df.profile_report(title='MPA PD Report',
+    title = file[5:8]," PD Report"
+    title = ''.join(title)
+    profile = df.profile_report(title=title,
                                 pool_size=4,
                                 missing_diagrams=dict(heatmap=True),
                                 correlations=dict(pearson=dict(calculate=True)))
