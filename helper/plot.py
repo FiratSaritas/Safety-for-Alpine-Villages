@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def plot_packages(fp: str, read_packages: int, sample_from_packages: int):
+def plot_packages(fp: str, read_packages: int, take_random_sample=True, 
+                  sample_size=10):
     """
     Reads Measurement file and plots given amount of samples from it.
     
@@ -29,9 +30,11 @@ def plot_packages(fp: str, read_packages: int, sample_from_packages: int):
             if len(samples) > read_packages:
                 break
             samples.append(line) 
-        
-    samples = np.random.permutation(samples)[:sample_from_packages]
-
+    
+    if take_random_sample:
+        samples = np.random.permutation(samples)[:sample_size]
+    else:
+        samples = samples[:sample_size]
     samples = [sample.split(' ') for sample in samples]
     ## Start time
     start_time = [sample[0] + ' ' + sample[1] for sample in samples]
@@ -49,8 +52,8 @@ def plot_packages(fp: str, read_packages: int, sample_from_packages: int):
 
     for i in range(len(samples)):
         plt.subplot(nrow, ncol, i+1)
-        p = sns.lineplot(x=np.arange(len(package[i])), y=package[i])
-        p.set_title(f'Sensor: {sensor[i]} / Measurement: {test_no[i]}')
+        p = sns.lineplot(x=np.arange(len(package[i])), y=package[i], label=start_time[i])
+        p.set_title(f'Sensor: {sensor[i]} / Measurement: {test_no[i]}', fontsize=10)
         p.set_xlabel('Steps')
         if i % ncol == 0:
             p.set_ylabel('Amplitude')
