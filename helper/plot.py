@@ -1,3 +1,8 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
 def plot_packages(fp: str, read_packages: int, sample_from_packages: int):
     """
     Reads Measurement file and plots given amount of samples from it.
@@ -50,5 +55,5 @@ def plot_packages(fp: str, read_packages: int, sample_from_packages: int):
         if i % ncol == 0:
             p.set_ylabel('Amplitude')
 
-    plt.subplots_adjust(hspace=.3)
+    plt.subplots_adjust(hspace=.4)
     plt.show()
