@@ -3,8 +3,7 @@ import numpy as np
 import librosa
 import warnings
 warnings.filterwarnings("ignore")
-from multiprocessing import Pool
-
+from multiprocess import Pool
 
 def multiprocessor_wrapper(func_, iterable_: list, processors=3):
     """
@@ -121,8 +120,8 @@ def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: l
         list of list. i.e.  [['G01', 'G02'], ['M01'], ['S01']]
     
     create_one_sensor_feature: Bool
-        
-    
+        Only applicable if there are sensor types with a single sensor.
+            
     n_processes: int
         Number of concurrent processes should be used
         
@@ -162,6 +161,8 @@ def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: l
         # Create and concat extracted Features with df
         new_feat_df = pd.DataFrame.from_records(data=res_mp, columns=['max_' + '_'.join(col.split('_')[:-1])+ '_' +
                                                     types[0][0] for col in df.columns if types[0] in col])
+        
+        df = pd.concat([df, new_feat_df], axis=1)
         
     return df
 
