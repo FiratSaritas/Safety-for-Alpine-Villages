@@ -191,6 +191,23 @@ class TooLazyForRegression(object):
             report = report[~report['scorer'].isin(['test_mean_absolute_error'])] #Training time (s)
             y_metric_names = np.delete(y_metric_names, np.where(y_metric_names == 'mean_absolute_error'), axis=0)
 
+        
+        if self.fit_model_class == "all": #all
+            colors = ["#4EA0C4", "#4EA0C4", "#4EA0C4","#4EA0C4","#4EA0C4","#C44E4E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#C4C44E","#449D3E","#449D3E","#449D3E"]
+
+        if self.fit_model_class == "linear": #linear
+            colors = ["#4EA0C4", "#4EA0C4", "#4EA0C4","#4EA0C4","#4EA0C4"]   
+
+        if self.fit_model_class == "tree": #tree
+            colors = ["#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E"]   
+
+        if self.fit_model_class == "neighbor": #neighbor
+            colors = ["#C44E4E"]  
+
+        if self.fit_model_class == "neuronal": #neuronal
+            colors = ["#C4C44E"] 
+            
+
         metric_names = report['scorer'].unique()
         ncols = 1
         nrows = int(len(metric_names) / ncols) + 1
@@ -199,7 +216,7 @@ class TooLazyForRegression(object):
         for i in range(len(metric_names)):
             plt.subplot(nrows, ncols, i + 1)
             tmp = report[report['scorer'] == metric_names[i]]
-            p = sns.boxplot(data=tmp, x='score', y='model', color='lightskyblue')
+            p = sns.boxplot(data=tmp, x='score', y='model', palette=colors)
 
             p.set_title(f'{y_metric_names[i].upper()}  cross-validated on {self.cross_val_splits} folds',
                         loc='left', fontsize=13)
