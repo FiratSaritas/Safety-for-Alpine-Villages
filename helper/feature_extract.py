@@ -105,7 +105,8 @@ def mp_extract_chroma_features(sample: str):
 
 
 def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: list, 
-                                               create_one_sensor_feature=True, n_processes=4) -> pd.DataFrame:
+                                               create_one_sensor_feature=True, n_processes=4,
+                                               keep_columns=True) -> pd.DataFrame:
     """
     
     This function extracts all features per Sensor type with the maximum amplitude (mab).
@@ -120,7 +121,8 @@ def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: l
         list of list. i.e.  [['G01', 'G02'], ['M01'], ['S01']]
     
     create_one_sensor_feature: Bool
-        Only applicable if there are sensor types with a single sensor.
+        Only applicable if there are sensor types with a single sensor. It makes no sense
+        to take max values if only one sensor is in data.
             
     n_processes: int
         Number of concurrent processes should be used
@@ -138,6 +140,7 @@ def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: l
         if not create_one_sensor_feature and len(types) == 1:
             print(f'INFO || Not Creating Max-Features for: {types}')
             continue
+        print(f'INFO || Extracting Max Features for types: {types}')
             
         tmp = df[['mab_'+t for t in types]]
         
@@ -161,9 +164,13 @@ def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: l
         # Create and concat extracted Features with df
         new_feat_df = pd.DataFrame.from_records(data=res_mp, columns=['max_' + '_'.join(col.split('_')[:-1])+ '_' +
                                                     types[0][0] for col in df.columns if types[0] in col])
-        
         df = pd.concat([df, new_feat_df], axis=1)
-        
+    
+    if not keep_columns:
+        for types in sensor_types:
+            for i in range(len(types)):
+                df = df.drop([col for col in df.columns if types[i] in col and 'max' not in col], axis=1)
+    
     return df
 
 
