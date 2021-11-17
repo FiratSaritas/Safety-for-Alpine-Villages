@@ -29,10 +29,10 @@ class TooLazyForRegression(object):
 
     """
     all_models = dict(all=[LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge,
-                           SVR, KNeighborsRegressor, DecisionTreeRegressor, ExtraTreeRegressor,
+                           KNeighborsRegressor, DecisionTreeRegressor, ExtraTreeRegressor,
                            RandomForestRegressor, BaggingRegressor, GradientBoostingRegressor, MLPRegressor,
                            LGBMRegressor, XGBRegressor, CatBoostRegressor],
-                      linear=[LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge, SVR],
+                      linear=[LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge],
                       tree=[DecisionTreeRegressor, ExtraTreeRegressor, RandomForestRegressor, BaggingRegressor,
                             GradientBoostingRegressor, LGBMRegressor, XGBRegressor, CatBoostRegressor],
                       neighbor=[KNeighborsRegressor],
@@ -156,7 +156,7 @@ class TooLazyForRegression(object):
             json.dump(obj=cv_results, fp=json_file)
         self.report = pd.read_json(self.save_path)
 
-    def plot_report(self, plot_include_time=False):
+    def plot_report(self, plot_include_time=False, plot_include_mae=False):
         """
         Plots Report from JSON Report which was constructed in the generate_report() Method.
 
@@ -164,6 +164,9 @@ class TooLazyForRegression(object):
         ----------
         plot_include_time: bool
             If time should be included as metric too
+        
+        plot_include_mae: bool
+            If mean absolute error should be included as metric too
 
         Returns
         -------
@@ -180,24 +183,47 @@ class TooLazyForRegression(object):
         report = report.rename(columns={'index': 'scorer'})
         report = report.melt(id_vars='scorer', var_name='model', value_name='score')
         report = report[~report['scorer'].isin(['score_time'])]
+        y_metric_names = np.asarray(('Training time (s)', 'R2 score', 'mean_absolute_error'))
         if not plot_include_time:
-            report = report[~report['scorer'].isin(['fit_time'])]
+            report = report[~report['scorer'].isin(['fit_time'])] #Training time (s)
+            y_metric_names = np.delete(y_metric_names, np.where(y_metric_names == 'Training time (s)'), axis=0)
+        if not plot_include_mae:
+            report = report[~report['scorer'].isin(['test_mean_absolute_error'])] #Training time (s)
+            y_metric_names = np.delete(y_metric_names, np.where(y_metric_names == 'mean_absolute_error'), axis=0)
+
+        
+        if self.fit_model_class == "all": #all
+            colors = ["#4EA0C4", "#4EA0C4", "#4EA0C4","#4EA0C4","#4EA0C4","#C44E4E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#C4C44E","#449D3E","#449D3E","#449D3E"]
+
+        if self.fit_model_class == "linear": #linear
+            colors = ["#4EA0C4", "#4EA0C4", "#4EA0C4","#4EA0C4","#4EA0C4"]   
+
+        if self.fit_model_class == "tree": #tree
+            colors = ["#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E","#449D3E"]   
+
+        if self.fit_model_class == "neighbor": #neighbor
+            colors = ["#C44E4E"]  
+
+        if self.fit_model_class == "neuronal": #neuronal
+            colors = ["#C4C44E"] 
+            
 
         metric_names = report['scorer'].unique()
         ncols = 1
         nrows = int(len(metric_names) / ncols) + 1
 
-        fig = plt.subplots(figsize=(16, 5 * nrows))
+        fig = plt.subplots(figsize=(16, 7 * nrows))
         for i in range(len(metric_names)):
             plt.subplot(nrows, ncols, i + 1)
             tmp = report[report['scorer'] == metric_names[i]]
-            p = sns.boxplot(data=tmp, x='score', y='model', color='lightskyblue')
+            p = sns.boxplot(data=tmp, x='score', y='model', palette=colors)
 
-            p.set_title(f'<{metric_names[i].upper()}>  cross-validated on {self.cross_val_splits} folds',
+            p.set_title(f'{y_metric_names[i].upper()}  cross-validated on {self.cross_val_splits} folds',
                         loc='left', fontsize=13)
             sns.despine()
-            p.set_xlabel(metric_names[i])
-            p.set_ylabel('')
+            p.set_xlabel(y_metric_names[i])
+            p.set_ylabel("")
+            p.grid(axis = 'y')
 
         plt.subplots_adjust(hspace=.4)
         plt.show()
