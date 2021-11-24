@@ -94,8 +94,6 @@ def plot_error_per_cat(y_true, y_pred, show_strip=True, show_outliers=False):
     p.set_title('True vs. Predicted per Category', loc='left')
     plt.show()
     
-    
-
 
 def plot_predictions_to_nearest_class_heatmap(y_true: np.ndarray, y_pred: np.ndarray):
     """
@@ -144,4 +142,15 @@ def plot_residuals(y_pred, y_test):
     p.set_title('Residualplot', loc='left')
     p.set_xlabel('Predicted size_mm')
     p.set_ylabel('Residuals')
+    plt.show()
+    
+
+def plot_kde(y_test, y_pred):
+    fig = plt.subplots(figsize=(10, 5))
+    sns.set_palette('Paired', 2)
+    p = sns.kdeplot(y_test, cumulative=True, bw=.01, label='True', linestyle='--')
+    p = sns.kdeplot(y_pred, cumulative=True, bw=.01, label='Predicted', color='grey')
+    p.set_title('Cumulative Density Plot Predicted and True', loc='left')
+    plt.xlim(0, np.max(y_pred))
+    plt.legend()
     plt.show()

@@ -143,6 +143,39 @@ class SignalFeatureExtractor(BaseFeatureTransform):
 
         return data
 
+    def extract_with_custom_func(self, processed_data: pd.DataFrame, custom_func):
+        """
+        This method is to call the extraction process with a custom processing function.
+        The function should take a list of strings as inputs. The string consist of one measurement sample
+
+        Parameters
+        ----------
+        processed_data: pd.DataFrame
+            Dataframe for data of WSl
+        custom_func: func
+            Pyhton function object which takes one argument(list as input) and outputs the processed sample.
+            like:
+            def this_is_a_function(list):
+                ....
+        Returns
+        -------
+        data:
+            extracted data with the custom functin joined to the WSL dataframe.
+        """
+        raw_data = self.load_raw_as_list(fp=self.raw_data_path)
+
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting ChromaFeatures from Raw')
+        data = SignalFeatureExtractor._multiprocessor_wrapper(
+            func_=custom_func,
+            iterable_=raw_data,
+            processors=self.n_processes)
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Transform ChromaFeatures')
+        data = self.transform_extracted_features(df=data)
+
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Joining ChromaFeatures')
+        data = self.feature_join(data_to_join=processed_data, data_extracted=data)
+
+        return data
 
     @staticmethod
     def _multiprocessor_wrapper(func_, iterable_: list, processors=3):
@@ -203,7 +236,7 @@ class SignalFeatureExtractor(BaseFeatureTransform):
         chroma_stft_std = np.std(chroma_stft)
 
         # Create Dictionary
-        data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor, package_len=package_len,
+        data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor, len=package_len,
                          chroma_stft_mean=chroma_stft_mean, chroma_stft_med=chroma_stft_med,
                          chroma_stft_std=chroma_stft_std)
         return data_dict
