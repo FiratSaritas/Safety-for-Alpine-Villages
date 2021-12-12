@@ -227,8 +227,72 @@ class TooLazyForRegression(object):
 
         plt.subplots_adjust(hspace=.4)
         plt.show()
+        report_sum_mean = report.groupby(['model']).mean()
+        report_sum_mean['model'] = report_sum_mean.index
 
+        if self.fit_model_class == "all": #all
+            options = ["LinearRegression", "Ridge", "Lasso", "ElasticNet", "BayesianRidge"]
+            linear_mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean() 
+            options = ["DecisionTreeRegressor", "ExtraTreeRegressor", "RandomForestRegressor", "BaggingRegressor",
+                                    "GradientBoostingRegressor", "LGBMRegressor", "XGBRegressor", "CatBoostRegressor"]
+            tree_mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean()
+            options = ["KNeighborsRegressor"]
+            knn_mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean()
+            options = ["MLPRegressor"]
+            mlp_mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean() 
+            print("Mean of all linear-Models:",np.round(linear_mean_info[0],3))
+            print("Mean of all tree-Models:",np.round(tree_mean_info[0],3))
+            print("Mean of all neighbor-Models:",np.round(knn_mean_info[0],3))
+            print("Mean of all neuronal-Models:",np.round(mlp_mean_info[0],3))
 
+        if self.fit_model_class == "linear": #linear
+            options = ["LinearRegression", "Ridge", "Lasso", "ElasticNet", "BayesianRidge"]
+            mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean()
+            print("Mean of all linear-Models:",np.round(mean_info[0],3))
+
+        if self.fit_model_class == "tree": #tree
+            options = ["DecisionTreeRegressor", "ExtraTreeRegressor", "RandomForestRegressor", "BaggingRegressor",
+                                    "GradientBoostingRegressor", "LGBMRegressor", "XGBRegressor", "CatBoostRegressor"]
+            mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean()
+            print("Mean of all tree-Models:",np.round(mean_info[0],3))
+
+        if self.fit_model_class == "neighbor": #neighbor
+            options = ["KNeighborsRegressor"]
+            mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean() 
+            print("Mean of all neighbor-Models:",np.round(mean_info[0],3))
+
+        if self.fit_model_class == "neuronal": #neuronal
+            options = ["MLPRegressor"]
+            mean_info = report_sum_mean.loc[report_sum_mean["model"].isin(options)].mean()
+            print("Mean of all neuronal-Models:",np.round(mean_info[0],3))
+
+    def mean_r2(self):
+        """
+            r2 mean from JSON Report which was constructed in the generate_report() Method.
+
+            Parameters
+            ----------
+            None
+
+            Returns
+            -------
+            Dataframe
+            """
+        plot_order = ["LinearRegression", "Ridge", "Lasso", "ElasticNet", "BayesianRidge",
+                      "KNeighborsRegressor", "DecisionTreeRegressor", "ExtraTreeRegressor",
+                      "RandomForestRegressor", "BaggingRegressor", "GradientBoostingRegressor", "MLPRegressor",
+                      "LGBMRegressor", "XGBRegressor", "CatBoostRegressor"]
+        
+        report = self.report
+        report = report.explode(column=report.columns.to_list()).reset_index()
+        report = report.rename(columns={'index': 'scorer'})
+        report = report.melt(id_vars='scorer', var_name='model', value_name='score')
+        report = report[~report['scorer'].isin(['score_time'])]
+        report = report[~report['scorer'].isin(['fit_time'])] #Training time (s)
+        report = report[~report['scorer'].isin(['test_mean_absolute_error'])] #Training time (s)
+        return report
+
+            
     def plot_residuals(self, data):
         """
 
