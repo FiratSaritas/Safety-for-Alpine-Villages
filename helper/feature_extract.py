@@ -3,7 +3,7 @@ import numpy as np
 import librosa
 import warnings
 warnings.filterwarnings("ignore")
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool as Pool
 from datetime import datetime
 
 
@@ -244,74 +244,112 @@ class SignalFeatureExtractor(BaseFeatureTransform):
 
 # Standalone Functions below here
 
-def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, sensor_types: list, 
-                                               create_one_sensor_feature=True, n_processes=4,
-                                               keep_columns=True) -> pd.DataFrame:
+def extract_highest_amplitude_features_with_mp(df: pd.DataFrame, create_one_sensor_feature=True, n_processes=4,
+                                               keep_columns=True, verbose=True, **kwargs) -> pd.DataFrame:
     """
-    
+
     This function extracts all features per Sensor type with the maximum amplitude (mab).
     After the extraction from each feature it adds it to the given dataframe and returns it.
     
+    Updates:
+    Added global statement to make inner function to work more stable:
+    https://stackoverflow.com/questions/52265120/python-multiprocessing-pool-attributeerror
+
     params:
     -------------
     df: pd.DataFrame
         Dataframe to extract max features from
-    
-    sensor_types:
-        list of list. i.e.  [['G01', 'G02'], ['M01'], ['S01']]
-    
+
     create_one_sensor_feature: Bool
         Only applicable if there are sensor types with a single sensor. It makes no sense
         to take max values if only one sensor is in data.
-            
+
     n_processes: int
         Number of concurrent processes should be used
-        
+
     returns:
     -------------
     df: pd.DataFrame
         Dataframe with concatenated max feature Values at last column position for each sensor type.
-    
-    """
+
+    """    
+    # extract sensor types from columns
+    sensor_types = get_all_sensors_in_df(df=df)
+
     # List w. all columns
     all_columns = df.columns.to_list()
-    
+
     for types in sensor_types:
         if not create_one_sensor_feature and len(types) == 1:
             print(f'INFO || Not Creating Max-Features for: {types}')
             continue
         print(f'INFO || Extracting Max Features for types: {types}')
-            
-        tmp = df[['mab_'+t for t in types]]
-        
+
+        tmp = df[['mab_' + t for t in types]]
+    
         # Extract maximum argument
-        max_val_sensor = np.argmax(tmp.to_numpy(), axis=1) 
+        if verbose:
+            print(f'INFO ||| Extracting Maximum Argument ')
+        max_val_sensor = np.argmax(tmp.to_numpy(), axis=1)
         max_sensors_per_row = [types[s] for s in max_val_sensor]
 
         # Create new feature for each feature with sensors with max each
         ## Create iterable for MP
+        if verbose:
+            print(f'INFO ||| Creating iterable for Multiprocessing')
         max_sensors_per_row = list(zip(np.arange(len(max_sensors_per_row)), max_sensors_per_row))
-        
-        ## Define inner func for MP
+
+        # Extract features with MP
+        if verbose:
+            print(f'INFO ||| Call Pool for Multiprocessing')
         def extract_max_feature_mp(max_sensor, df=df):
+            """Inner func for extract_highest_amplitude_features_with_mp()"""
             max_row = df.loc[max_sensor[0], [col for col in df.columns if max_sensor[1] in col]].to_numpy()
             return max_row
         
-        # Extract features with MP
         with Pool(processes=n_processes) as pool:
             res_mp = pool.map(func=extract_max_feature_mp, iterable=max_sensors_per_row)
         
+        if verbose:
+            print(f'INFO ||| Creating Dataset from processed features')
         # Create and concat extracted Features with df
-        new_feat_df = pd.DataFrame.from_records(data=res_mp, columns=['max_' + '_'.join(col.split('_')[:-1])+ '_' +
-                                                    types[0][0] for col in df.columns if types[0] in col])
+        new_feat_df = pd.DataFrame.from_records(data=res_mp, columns=['max_' + '_'.join(col.split('_')[:-1]) + '_' +
+                                                                      types[0][0] for col in df.columns if
+                                                                      types[0] in col])
         df = pd.concat([df, new_feat_df], axis=1)
-    
+
     if not keep_columns:
+        if verbose:
+            print(f'INFO ||| Dropping columns else than new generated max-features')
         for types in sensor_types:
             for i in range(len(types)):
                 df = df.drop([col for col in df.columns if types[i] in col and 'max' not in col], axis=1)
-    
+
     return df
+
+
+def get_all_sensors_in_df(df: pd.DataFrame) -> [list]:
+    """
+    Takes Dataframe and extracts all unique sensor names and returns it as a list of list.
+    This function can be used with extract_highest_amplitude_features_with_mp() as sensor_types input.
+    """
+    sensors = [col.split('_')[-1] for col in df.columns]
+    sensors = list(set([s for s in sensors if s[-1].isnumeric()]))
+    all_sensors = []
+    tmp = {}
+    for sensor in sensors:
+        if not sensor[0] in list(tmp.keys()):
+            tmp[sensor[0]] = [sensor]
+        else:
+            tmp[sensor[0]].append(sensor)
+    for k, sensors in tmp.items():
+        all_sensors.append(sensors)
+    return all_sensors
+
+
+
+
+
 
 
 
