@@ -344,12 +344,10 @@ def get_all_sensors_in_df(df: pd.DataFrame) -> [list]:
             tmp[sensor[0]].append(sensor)
     for k, sensors in tmp.items():
         all_sensors.append(sensors)
+        
     return all_sensors
 
-
-
-
-def mean_feature_per_measurement(df: pd.DataFrame, drop_columns=True)  -> pd.DataFrame:
+def mean_feature_per_measurement(df: pd.DataFrame, keep_columns=True)  -> pd.DataFrame:
     """
     Takes mean features of each measurement from all sensors. 
     Then appends it to given Dataframe
@@ -380,7 +378,7 @@ def mean_feature_per_measurement(df: pd.DataFrame, drop_columns=True)  -> pd.Dat
         mean_df[col+'_mean'] = df[column_selection].mean(axis=1)
         
     # Append to df
-    if not drop_columns:
+    if keep_columns:
         df = pd.concat([df, mean_df], axis=1)
     else:
         df = mean_df
@@ -390,19 +388,20 @@ def mean_feature_per_measurement(df: pd.DataFrame, drop_columns=True)  -> pd.Dat
 
 def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extract_mean_features=True) -> pd.DataFrame:
     """Wrapper Function for Mean and Max Features"""
+    df_keep = df[['start_time', 'size_mm', 'velocity']]
     if extract_mean_features and extract_max_features:
-        mean_features = mean_feature_per_measurement(df)
+        mean_features = mean_feature_per_measurement(df, keep_columns=False)
         max_features = extract_highest_amplitude_features_with_mp(df=df, create_one_sensor_feature=False,
                                                                   n_processes=6, keep_columns=False, verbose=False)
-        df = pd.concat([mean_features, max_features], axis=1)
+        df = pd.concat([mean_features, max_features], axis=1)        
     elif extract_mean_features and not extract_max_features:
-        df_ = mean_feature_per_measurement(df)
-        df = df[[ 'start_time', 'size_mm', 'velocity']]
-        df = pd.concat([df, df_], axis=1)
+        df = mean_feature_per_measurement(df, keep_columns=False)
+        df = pd.concat([df_keep, df], axis=1)
     elif extract_max_features and not extract_mean_features:
         df = extract_highest_amplitude_features_with_mp(df=df, create_one_sensor_feature=False,
                                                         n_processes=6, keep_columns=False, verbose=False)
-        
+        df = pd.concat([df_keep, df], axis=1)
+
     return df
 
 
