@@ -62,7 +62,7 @@ def plot_packages(fp: str, read_packages: int, take_random_sample=True,
     plt.show()
     
     
-def plot_error_per_cat(y_true, y_pred, show_strip=True, show_outliers=False):
+def plot_error_per_cat(y_test, y_pred, show_strip=True, show_outliers=False):
     """
     Plots error by using Boxplots. 
     Predicitons where automatically binned on True values.
