@@ -348,7 +348,39 @@ def get_all_sensors_in_df(df: pd.DataFrame) -> [list]:
 
 
 
-
+def mean_feature_per_measurement(df: pd.DataFrame)  -> pd.DataFrame:
+    """
+    Takes mean features of each measurement from all sensors. 
+    Then appends it to given Dataframe
+    
+    arguments:
+    -----------
+    df: pd.Dataframe
+        pandas dataframe to extract features from
+    
+    returns:
+    -----------
+    df: pd.Dataframe
+         Given Df with appended features
+        
+    """
+    # Init empty df
+    mean_df = pd.DataFrame()
+    # Select measurement values
+    columns = np.array([col[:-4] for col in df.columns])
+    for col in set(columns[4:]):
+        # Create mask for column selection
+        column_mask =  columns == col
+        column_selection = df.columns.to_numpy()[column_mask]
+        # Take mean over equal measurements
+        if len(column_selection) <=1:
+            continue        
+        mean_df[col+'_mean'] = df[column_selection].mean(axis=1)
+        
+    # Append to df
+    df = pd.concat([df, mean_df], axis=1)
+    
+    return df
 
 
 
