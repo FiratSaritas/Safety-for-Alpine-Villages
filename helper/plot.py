@@ -62,21 +62,28 @@ def plot_packages(fp: str, read_packages: int, take_random_sample=True,
     plt.show()
     
     
-def plot_error_per_cat(y_test, y_pred, show_strip=True, show_outliers=False):
+def plot_error_per_cat(y_true, y_pred, show_strip=True, show_relative_error=False, 
+                       log_scaled_y=False):
     """
-    Plots error by using Boxplots. 
-    Predicitons where automatically binned on True values.
+    Plots error by using Boxplots. Predicitons where automatically binned on True values.
     
     params:
     ----------
     y_true: np.ndarray
         True values    
+        
     y_pred: np.ndarray
         predicted values
+        
     show_strip: Bool
         show stripplot if true else not
-    show_outlier: Bool
-        shows outlier of boxplot in black if true else not.
+    
+    show_relative_error: Bool
+        Shows error on a relative scale which makes it more comparable 
+        to bigger sized grains
+    
+    log_scaled_y: Bool
+        Log Scales the y-axis to have a better scaling for lower sizes.
         
     returns:
     ----------
@@ -86,12 +93,33 @@ def plot_error_per_cat(y_test, y_pred, show_strip=True, show_outliers=False):
     fig = plt.subplots(figsize=(10, 5))
     sns.set_palette('Greens', 15)
     sns.set_style('darkgrid')
-    p = sns.boxplot(y=y_pred, x=y_test, showfliers=show_outliers)
+    if show_relative_error:
+        p = sns.boxplot(y=((y_pred-y_test)/y_test)*100, x=y_test, showfliers=False)
+    else:
+        if log_scaled_y:
+            p = sns.boxplot(y=np.log(y_pred), x=np.round(np.log(y_test), 2), showfliers=False)
+        else:
+            p = sns.boxplot(y=y_pred, x=y_test, showfliers=False)  
     if show_strip:
-        p2 = sns.stripplot(y=y_pred, x=y_test, alpha=.5, color='grey', size=3)
+        if show_relative_error:
+            p2 = sns.stripplot(y=((y_pred-y_test)/y_test)*100, x=y_test, alpha=.5, color='grey', size=3)
+        else:
+            if log_scaled_y:
+                p2 = sns.stripplot(y=np.log(y_pred), x=np.round(np.log(y_test), 2), alpha=.5, color='grey', size=3)
+            else:
+                p2 = sns.stripplot(y=y_pred, x=y_test, alpha=.5, color='grey', size=3)
+
     p.set_xlabel('True')
-    p.set_ylabel('Predicted')
-    p.set_title('True vs. Predicted per Category', loc='left')
+    if show_relative_error:
+        p.set_ylabel('Relative Error (%)')
+    else:
+        if log_scaled_y:
+            p.set_ylabel('log(Predicted)')
+        else:
+            p.set_ylabel('Predicted')
+    plt.suptitle('True vs. Predicted per Category', fontsize=14)
+    if show_relative_error:
+        p.set_title(r'Relative Error (%) | $\epsilon = \frac{\hat{y}-y}{y}*100$', fontsize=9)
     plt.show()
     
 
