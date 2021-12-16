@@ -5,6 +5,7 @@ import warnings
 warnings.filterwarnings("ignore")
 from multiprocessing.pool import ThreadPool as Pool
 from datetime import datetime
+from tqdm import tqdm
 
 
 class BaseFeatureTransform(object):
@@ -240,6 +241,44 @@ class SignalFeatureExtractor(BaseFeatureTransform):
                          chroma_stft_mean=chroma_stft_mean, chroma_stft_med=chroma_stft_med,
                          chroma_stft_std=chroma_stft_std)
         return data_dict
+    
+    def raw_lookup(self, start_time: str, packnr: str) -> list:
+        """
+        Looks up raw data and returns matched elements.
+        
+        params:
+        ---------
+        start_time: str
+            string in shape like: '2019-09-24 10:02:31' to match time
+        
+        packnr: str
+            packnr as str
+            
+        returns:
+        ----------
+        list(dict):
+            List of dictionaries for each measurement package.
+        
+        """
+        assert type(packnr) == str
+        assert type(start_time) == str
+        
+        raw_data = self.load_raw_as_list(fp=self.raw_data_path)
+        
+        matching = []
+        for sample in tqdm(raw_data):
+            pack = sample.split(' ')
+            pack_start_time = pack[0] + ' ' + pack[1]
+            pack_packnr = pack[2]
+            
+            if pack_start_time == start_time and pack_packnr == packnr:
+                sensor = pack[3]
+                package = np.array(pack[4:]).astype(float)
+                match = dict(start_time=pack_start_time, packnr=pack_packnr,
+                             sensor=sensor, package=package)
+                matching.append(match)
+        
+        return matching
 
 
 # Standalone Functions below here
