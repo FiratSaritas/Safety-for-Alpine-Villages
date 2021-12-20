@@ -129,7 +129,7 @@ class SignalFeatureExtractor(BaseFeatureTransform):
         data: pd.DataFrame
             Dataframe with concatenated new extracted features
         """
-        raw_data = self.load_raw_as_list(fp=self.raw_data_path)
+        raw_data = self.load_raw_as_list(fp=self.raw_data_path) 
 
         if self.extract_chromafeatures:
             print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting ChromaFeatures from Raw')
@@ -163,17 +163,18 @@ class SignalFeatureExtractor(BaseFeatureTransform):
         data:
             extracted data with the custom functin joined to the WSL dataframe.
         """
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Load Raw Data')
         raw_data = self.load_raw_as_list(fp=self.raw_data_path)
 
-        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting ChromaFeatures from Raw')
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting from Raw')
         data = SignalFeatureExtractor._multiprocessor_wrapper(
             func_=custom_func,
             iterable_=raw_data,
             processors=self.n_processes)
-        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Transform ChromaFeatures')
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Transform Features')
         data = self.transform_extracted_features(df=data)
 
-        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Joining ChromaFeatures')
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Joining new Features')
         data = self.feature_join(data_to_join=processed_data, data_extracted=data)
 
         return data
@@ -274,7 +275,7 @@ class SignalFeatureExtractor(BaseFeatureTransform):
             if pack_start_time == start_time and pack_packnr == packnr:
                 sensor = pack[3]
                 package = np.array(pack[4:]).astype(float)
-                match = dict(start_time=pack_start_time, packnr=pack_packnr,
+                match = dict(start_time=pack_start_time, packnr=pack_packnr, 
                              sensor=sensor, package=package)
                 matching.append(match)
         
@@ -406,7 +407,7 @@ def mean_feature_per_measurement(df: pd.DataFrame, keep_columns=True)  -> pd.Dat
     # Init empty df
     mean_df = pd.DataFrame()
     # Select measurement values
-    columns = np.array([col[:-4] for col in df.columns])
+    columns = np.array([col[:-2] for col in df.columns])
     for col in set(columns[4:]):
         # Create mask for column selection
         column_mask =  columns == col
@@ -414,7 +415,7 @@ def mean_feature_per_measurement(df: pd.DataFrame, keep_columns=True)  -> pd.Dat
         # Take mean over equal measurements
         if len(column_selection) <=1:
             continue        
-        mean_df[col+'_mean'] = df[column_selection].mean(axis=1)
+        mean_df['mean_'+col] = df[column_selection].mean(axis=1)
         
     # Append to df
     if keep_columns:
@@ -429,18 +430,19 @@ def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extra
     """Wrapper Function for Mean and Max Features"""
     df_keep = df[['start_time', 'size_mm', 'velocity']]
     if extract_mean_features and extract_max_features:
-        mean_features = mean_feature_per_measurement(df, keep_columns=False)
-        max_features = extract_highest_amplitude_features_with_mp(df=df, create_one_sensor_feature=False,
+        mean_features = mean_feature_per_measurement(df.copy(), keep_columns=False)
+        max_features = extract_highest_amplitude_features_with_mp(df=df.copy(), create_one_sensor_feature=False,
                                                                   n_processes=6, keep_columns=False, verbose=False)
-        df = pd.concat([mean_features, max_features], axis=1)        
+        df = pd.concat([max_features, mean_features], axis=1)
     elif extract_mean_features and not extract_max_features:
         df = mean_feature_per_measurement(df, keep_columns=False)
         df = pd.concat([df_keep, df], axis=1)
+
     elif extract_max_features and not extract_mean_features:
         df = extract_highest_amplitude_features_with_mp(df=df, create_one_sensor_feature=False,
                                                         n_processes=6, keep_columns=False, verbose=False)
         df = pd.concat([df_keep, df], axis=1)
-
+    
     return df
 
 
