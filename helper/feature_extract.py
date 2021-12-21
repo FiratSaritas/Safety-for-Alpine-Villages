@@ -118,7 +118,7 @@ class SignalExtractFunctions(object):
         sensor = sample[3]
         package = np.array(sample[4:]).astype(float)
         
-        zcr = zero_crossing_rate(package, frame_length=package.shape[0])[0][0]
+        zcr = librosa.feature.zero_crossing_rate(package, frame_length=package.shape[0])[0][0]
         peak_valley_value = np.max(package) - np.min(package)
         root_mean_square_energy = np.sqrt(np.mean(package**2))
         spectral_centroid = librosa.feature.spectral_centroid(package)[0][0]
@@ -129,7 +129,7 @@ class SignalExtractFunctions(object):
         data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor,
                          zcr=zcr, peak_valley_value=peak_valley_value, rmse=root_mean_square_energy,
                          spectral_centroid=spectral_centroid, spectral_flatness=spectral_flatness,
-                         spectral_rolloff=spectral_rolloff, )
+                         spectral_rolloff=spectral_rolloff)
         return data_dict
 
     @staticmethod
@@ -482,13 +482,15 @@ def mean_feature_per_measurement(df: pd.DataFrame, keep_columns=True)  -> pd.Dat
     return df
 
 
-def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extract_mean_features=True) -> pd.DataFrame:
+def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extract_mean_features=True, 
+                              n_processes=3, verbose=False) -> pd.DataFrame:
     """Wrapper Function for Mean and Max Features"""
     df_keep = df[['start_time', 'size_mm', 'velocity']]
     if extract_mean_features and extract_max_features:
         mean_features = mean_feature_per_measurement(df.copy(), keep_columns=False)
         max_features = extract_highest_amplitude_features_with_mp(df=df.copy(), create_one_sensor_feature=False,
-                                                                  n_processes=6, keep_columns=False, verbose=False)
+                                                                  n_processes=n_processes, keep_columns=False, 
+                                                                  verbose=verbose)
         df = pd.concat([max_features, mean_features], axis=1)
     elif extract_mean_features and not extract_max_features:
         df = mean_feature_per_measurement(df, keep_columns=False)
@@ -496,7 +498,8 @@ def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extra
 
     elif extract_max_features and not extract_mean_features:
         df = extract_highest_amplitude_features_with_mp(df=df, create_one_sensor_feature=False,
-                                                        n_processes=6, keep_columns=False, verbose=False)
+                                                        n_processes=n_processes, keep_columns=False, 
+                                                        verbose=verbose)
         df = pd.concat([df_keep, df], axis=1)
     
     return df
