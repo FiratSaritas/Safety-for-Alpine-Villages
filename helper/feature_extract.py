@@ -6,6 +6,9 @@ warnings.filterwarnings("ignore")
 from multiprocessing.pool import ThreadPool as Pool
 from datetime import datetime
 from tqdm import tqdm
+from scipy.stats import kurtosis, skew
+import pywt
+
 
 
 class BaseFeatureTransform(object):
@@ -69,13 +72,97 @@ class BaseFeatureTransform(object):
         data_extracted['start_time'] = pd.to_datetime(data_extracted['start_time'])
         return data_extracted
 
+class SignalExtractFunctions(object):
+    
+    def __init__(self):
+        super(SignalExtractFunctions, self).__init__()
+    
+    @staticmethod
+    def _wavelet_feature_extraction(sample: str):
+        """Extracts features using the Wavelet Transform."""
+        # generate List from string
+        sample = sample.split(' ')
 
-class SignalFeatureExtractor(BaseFeatureTransform):
+        # Feature Extraction from list of strings
+        start_time = sample[0] + ' ' + sample[1]
+        packnr = sample[2]
+        sensor = sample[3]
+        package = np.array(sample[4:]).astype(float)
+        
+        wavelet_transform = pywt.dwt(package, 'db1')
+        
+        wavelet_mean_approx = np.mean(wavelet_transform[0])
+        wavelet_med_approx = np.median(wavelet_transform[0])
+        wavelet_var_approx = np.var(wavelet_transform[0])
+        wavelet_mean_coef = np.mean(wavelet_transform[1])
+        wavelet_med_coef = np.median(wavelet_transform[1])
+        wavelet_var_coef = np.var(wavelet_transform[1])
+        #wavelet_q25 = np.quantile(a=wavelet, q=.25)
+        #wavelet_q75 = np.quantile(a=wavelet, q=.75)
+
+        # Create Dictionary
+        data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor,
+                         wavelet_mean_approx=wavelet_mean_approx, wavelet_med_approx=wavelet_med_approx,
+                         wavelet_var_approx=wavelet_var_approx, wavelet_mean_coef=wavelet_mean_coef,
+                         wavelet_med_coef=wavelet_med_coef, wavelet_var_coef=wavelet_var_coef)
+        return data_dict
+    
+    @staticmethod
+    def _signal_dependent_feature_extraction(sample: str):
+        # generate List from string
+        sample = sample.split(' ')
+
+        # Feature Extraction from list of strings
+        start_time = sample[0] + ' ' + sample[1]
+        packnr = sample[2]
+        sensor = sample[3]
+        package = np.array(sample[4:]).astype(float)
+        
+        zcr = zero_crossing_rate(package, frame_length=package.shape[0])[0][0]
+        peak_valley_value = np.max(package) - np.min(package)
+        root_mean_square_energy = np.sqrt(np.mean(package**2))
+        spectral_centroid = librosa.feature.spectral_centroid(package)[0][0]
+        spectral_bandwith = librosa.feature.spectral_bandwidth(package)[0][0]
+        spectral_flatness = librosa.feature.spectral_flatness(package)[0][0]
+        spectral_rolloff = librosa.feature.spectral_rolloff(package)[0][0]
+        
+        data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor,
+                         zcr=zcr, peak_valley_value=peak_valley_value, rmse=root_mean_square_energy,
+                         spectral_centroid=spectral_centroid, spectral_flatness=spectral_flatness,
+                         spectral_rolloff=spectral_rolloff, )
+        return data_dict
+
+    @staticmethod
+    def _statistical_feature_extraction(sample: str):
+        # generate List from string
+        sample = sample.split(' ')
+
+        # Feature Extraction from list of strings
+        start_time = sample[0] + ' ' + sample[1]
+        packnr = sample[2]
+        sensor = sample[3]
+        package = np.array(sample[4:]).astype(float)
+        
+        pack_sum = np.sum(np.abs(package))
+        pack_norm = np.linalg.norm(package)
+        pack_kurtosis = kurtosis(package) 
+        pack_skew = skew(package)
+        
+        data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor, 
+                         pack_sum=pack_sum, pack_norm=pack_norm, pack_kurtosis=pack_kurtosis,
+                         pack_skew=pack_skew)
+        return data_dict
+        
+    
+
+class SignalFeatureExtractor(BaseFeatureTransform, SignalExtractFunctions):
+    """
+    This class is for the extraction of features of raw_data
     """
 
-    """
-
-    def __init__(self, raw_data_path: str, extract_chromafeatures: True,
+    def __init__(self, raw_data_path: str, 
+                 extract_wavelet_features: bool = True, extract_stats_features: bool = True,
+                 extract_signal_dependent_features: bool = True, 
                  n_processes: int = 3):
         """
 
@@ -88,7 +175,9 @@ class SignalFeatureExtractor(BaseFeatureTransform):
         """
         super(SignalFeatureExtractor, self).__init__()
         self.raw_data_path = raw_data_path
-        self.extract_chromafeatures = extract_chromafeatures
+        self.extract_wavelet_features = extract_wavelet_features
+        self.extract_stats_features = extract_stats_features
+        self.extract_signal_dependent_features = extract_signal_dependent_features
         self.n_processes = n_processes
 
         print('SignalFeatureExtractor: ', self.__dict__)
@@ -115,7 +204,7 @@ class SignalFeatureExtractor(BaseFeatureTransform):
         return raw_data
 
 
-    def extract(self, processed_data: pd.DataFrame):
+    def extract(self, processed_data: pd.DataFrame) -> pd.DataFrame:
         """
         Extracts new features and joins it to the given pre-processed dataframe by WSL.
 
@@ -130,21 +219,20 @@ class SignalFeatureExtractor(BaseFeatureTransform):
             Dataframe with concatenated new extracted features
         """
         raw_data = self.load_raw_as_list(fp=self.raw_data_path) 
-
-        if self.extract_chromafeatures:
-            print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting ChromaFeatures from Raw')
-            data = SignalFeatureExtractor._multiprocessor_wrapper(func_=SignalFeatureExtractor.mp_extract_chroma_features,
-                                                                  iterable_=raw_data,
-                                                                  processors=self.n_processes)
-            print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Transform ChromaFeatures')
-            data = self.transform_extracted_features(df=data)
-
-            print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Joining ChromaFeatures')
-            data = self.feature_join(data_to_join=processed_data, data_extracted=data)
+    
+        if self.extract_wavelet_features:
+            processed_data = self.extract_with_custom_func(processed_data=processed_data, custom_func=self._wavelet_feature_extraction, 
+                                                           raw_data=raw_data)        
+        if self.extract_stats_features:
+            processed_data = self.extract_with_custom_func(processed_data=processed_data, custom_func=self._statistical_feature_extraction, 
+                                                           raw_data=raw_data)        
+        if self.extract_signal_dependent_features:
+            processed_data = self.extract_with_custom_func(processed_data=processed_data, custom_func=self._signal_dependent_feature_extraction, 
+                                                           raw_data=raw_data)        
 
         return data
 
-    def extract_with_custom_func(self, processed_data: pd.DataFrame, custom_func):
+    def extract_with_custom_func(self, processed_data: pd.DataFrame, custom_func, raw_data: list = None):
         """
         This method is to call the extraction process with a custom processing function.
         The function should take a list of strings as inputs. The string consist of one measurement sample
@@ -163,8 +251,11 @@ class SignalFeatureExtractor(BaseFeatureTransform):
         data:
             extracted data with the custom functin joined to the WSL dataframe.
         """
+        print(15*'=', f'Extracting for Function: {custom_func.__name__}', 15*'=')
+        print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting Features')
         print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Load Raw Data')
-        raw_data = self.load_raw_as_list(fp=self.raw_data_path)
+        if not raw_data:
+            raw_data = self.load_raw_as_list(fp=self.raw_data_path)
 
         print(f'INFO || {datetime.now().strftime("%y.%m.%d_%H:%M")} | Extracting from Raw')
         data = SignalFeatureExtractor._multiprocessor_wrapper(
@@ -207,41 +298,6 @@ class SignalFeatureExtractor(BaseFeatureTransform):
             res = pool.map(func=func_, iterable=iterable_)
         return pd.DataFrame.from_records(res)
 
-
-    def mp_extract_chroma_features(sample: str):
-        """
-        Extracts Chromagraph features from data. This function was written to correspond with the
-        multiprocessing module.
-
-        Parameters
-        ----------
-        sample: list
-            One Sample as List element of list of strings
-
-        Returns
-        -------
-        data_dict: dict
-            Returns a Dictionary with given samples
-        """
-        # generate List from string
-        sample = sample.split(' ')
-
-        # Feature Extraction from list of strings
-        start_time = sample[0] + ' ' + sample[1]
-        packnr = sample[2]
-        sensor = sample[3]
-        package = np.array(sample[4:]).astype(float)
-        package_len = len(package)
-        chroma_stft = librosa.feature.chroma_stft(y=package, sr=10000).flatten()
-        chroma_stft_mean = np.mean(chroma_stft)
-        chroma_stft_med = np.median(chroma_stft)
-        chroma_stft_std = np.std(chroma_stft)
-
-        # Create Dictionary
-        data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor, len=package_len,
-                         chroma_stft_mean=chroma_stft_mean, chroma_stft_med=chroma_stft_med,
-                         chroma_stft_std=chroma_stft_std)
-        return data_dict
     
     def raw_lookup(self, start_time: str, packnr: str) -> list:
         """
