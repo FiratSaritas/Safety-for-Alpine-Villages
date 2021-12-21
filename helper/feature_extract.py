@@ -487,6 +487,9 @@ def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extra
     """Wrapper Function for Mean and Max Features"""
     df_keep = df[['start_time', 'size_mm', 'velocity']]
     if extract_mean_features and extract_max_features:
+        max_features = extract_highest_amplitude_features_with_mp(df=df.copy(), create_one_sensor_feature=False,
+                                                                  n_processes=n_processes, keep_columns=False, 
+                                                                  verbose=verbose)
         mean_features = mean_feature_per_measurement(df.copy(), keep_columns=False)
         max_features = extract_highest_amplitude_features_with_mp(df=df.copy(), create_one_sensor_feature=False,
                                                                   n_processes=n_processes, keep_columns=False, 
@@ -500,7 +503,7 @@ def feature_extractor_wrapper(df: pd.DataFrame, extract_max_features=True, extra
         df = extract_highest_amplitude_features_with_mp(df=df, create_one_sensor_feature=False,
                                                         n_processes=n_processes, keep_columns=False, 
                                                         verbose=verbose)
-        df = pd.concat([df_keep, df], axis=1)
+        #df = pd.concat([df_keep, df], axis=1)
     
     return df
 
