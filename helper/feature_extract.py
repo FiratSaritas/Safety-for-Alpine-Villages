@@ -230,7 +230,7 @@ class SignalFeatureExtractor(BaseFeatureTransform, SignalExtractFunctions):
             processed_data = self.extract_with_custom_func(processed_data=processed_data, custom_func=self._signal_dependent_feature_extraction, 
                                                            raw_data=raw_data)        
 
-        return data
+        return processed_data
 
     def extract_with_custom_func(self, processed_data: pd.DataFrame, custom_func, raw_data: list = None):
         """
