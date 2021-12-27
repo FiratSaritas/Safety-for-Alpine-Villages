@@ -121,15 +121,12 @@ class SignalExtractFunctions(object):
         zcr = librosa.feature.zero_crossing_rate(package, frame_length=package.shape[0])[0][0]
         peak_valley_value = np.max(package) - np.min(package)
         root_mean_square_energy = np.sqrt(np.mean(package**2))
-        spectral_centroid = librosa.feature.spectral_centroid(package)[0][0]
-        spectral_bandwith = librosa.feature.spectral_bandwidth(package)[0][0]
         spectral_flatness = librosa.feature.spectral_flatness(package)[0][0]
         spectral_rolloff = librosa.feature.spectral_rolloff(package)[0][0]
         
         data_dict = dict(start_time=start_time, packnr=packnr, sensor_type=sensor,
                          zcr=zcr, peak_valley_value=peak_valley_value, rmse=root_mean_square_energy,
-                         spectral_centroid=spectral_centroid, spectral_flatness=spectral_flatness,
-                         spectral_rolloff=spectral_rolloff)
+                         spectral_flatness=spectral_flatness, spectral_rolloff=spectral_rolloff)
         return data_dict
 
     @staticmethod
