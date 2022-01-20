@@ -1,0 +1,68 @@
+raw_data_path: "./data/raw_packets_obernach_MP_0.24_2510.vlnd"
+processed_data_path: "./data/data_mpa.txt"
+model_path: "./models/mpa/mpa_catboost_complex.pkl"
+save_predictions_path: "./data/predictions_simple_sps.csv"
+is_complex_model: true
+_features:
+  complex:
+    mpa: [
+          'max_centroid_frequency_M', 'max_centroid_frequency2_M', 'max_median_freq_M', 'max_flash_ind_M', 'max_cv_M',
+          'max_iqa_M', 'max_mab_M', 'max_imp_M', 'max_len_M', 'max_wavelet_mean_approx_M', 'max_wavelet_med_approx_M',
+          'max_wavelet_var_approx_M', 'max_wavelet_mean_coef_M', 'max_wavelet_med_coef_M', 'max_wavelet_var_coef_M',
+          'max_pack_sum_M', 'max_pack_kurtosis_M', 'max_pack_skew_M', 'max_zcr_M', 'max_rmse_M', 'max_spectral_flatness_M',
+          'max_spectral_rolloff_M', 'mean_wavelet_med_approx_M', 'mean_pack_kurtosis_M', 'mean_imp_M', 'mean_pack_sum_M',
+          'mean_len_M', 'mean_wavelet_var_approx_M', 'mean_spectral_rolloff_M', 'mean_cv_M', 'mean_wavelet_mean_approx_M',
+          'mean_mab_M', 'mean_rmse_M', 'mean_wavelet_mean_coef_M', 'mean_wavelet_med_coef_M', 'mean_wavelet_var_coef_M',
+          'mean_centroid_frequency_M', 'mean_zcr_M', 'mean_spectral_flatness_M', 'mean_flash_ind_M', 'mean_median_freq_M',
+          'mean_iqa_M', 'mean_pack_skew_M', 'mean_centroid_frequency2_M'
+    ]
+    spg: [
+          'max_centroid_frequency_G', 'max_centroid_frequency2_G', 'max_median_freq_G', 'max_flash_ind_G', 'max_cv_G',
+          'max_iqa_G', 'max_mab_G', 'max_imp_G', 'max_len_G', 'max_wavelet_mean_approx_G', 'max_wavelet_med_approx_G',
+          'max_wavelet_var_approx_G', 'max_wavelet_mean_coef_G', 'max_wavelet_med_coef_G', 'max_wavelet_var_coef_G',
+          'max_pack_sum_G', 'max_pack_kurtosis_G', 'max_pack_skew_G', 'max_zcr_G', 'max_rmse_G',
+          'max_spectral_flatness_G', 'max_spectral_rolloff_G', 'mean_imp_G', 'mean_wavelet_var_coef_G', 'mean_rmse_G',
+          'mean_iqa_G', 'mean_wavelet_med_approx_G', 'mean_pack_sum_G', 'mean_spectral_rolloff_G', 'mean_zcr_G',
+          'mean_pack_kurtosis_G', 'mean_centroid_frequency_G', 'mean_median_freq_G', 'mean_len_G', 'mean_cv_G',
+          'mean_flash_ind_G', 'mean_spectral_flatness_G', 'mean_centroid_frequency2_G', 'mean_wavelet_med_coef_G',
+          'mean_pack_skew_G', 'mean_wavelet_var_approx_G', 'mean_wavelet_mean_coef_G', 'mean_mab_G','mean_wavelet_mean_approx_G'
+    ]
+    sps: [
+          'max_centroid_frequency_M', 'max_centroid_frequency2_M', 'max_median_freq_M', 'max_flash_ind_M', 'max_cv_M',
+          'max_iqa_M', 'max_mab_M', 'max_imp_M', 'max_len_M', 'max_wavelet_mean_approx_M', 'max_wavelet_med_approx_M',
+          'max_wavelet_var_approx_M', 'max_wavelet_mean_coef_M', 'max_wavelet_med_coef_M', 'max_wavelet_var_coef_M',
+          'max_pack_sum_M', 'max_pack_kurtosis_M', 'max_pack_skew_M', 'max_zcr_M', 'max_rmse_M',
+          'max_spectral_flatness_M', 'max_spectral_rolloff_M', 'max_centroid_frequency_S', 'max_centroid_frequency2_S',
+          'max_median_freq_S', 'max_flash_ind_S', 'max_cv_S', 'max_iqa_S', 'max_mab_S', 'max_imp_S', 'max_len_S',
+          'max_wavelet_mean_approx_S', 'max_wavelet_med_approx_S', 'max_wavelet_var_approx_S', 'max_wavelet_mean_coef_S',
+          'max_wavelet_med_coef_S', 'max_wavelet_var_coef_S', 'max_pack_sum_S', 'max_pack_kurtosis_S', 'max_pack_skew_S',
+          'max_zcr_S', 'max_rmse_S', 'max_spectral_flatness_S', 'max_spectral_rolloff_S', 'max_centroid_frequency_G',
+          'max_centroid_frequency2_G', 'max_median_freq_G', 'max_flash_ind_G', 'max_cv_G', 'max_iqa_G', 'max_mab_G',
+          'max_imp_G', 'max_len_G', 'max_wavelet_mean_approx_G', 'max_wavelet_med_approx_G', 'max_wavelet_var_approx_G',
+          'max_wavelet_mean_coef_G', 'max_wavelet_med_coef_G', 'max_wavelet_var_coef_G', 'max_pack_sum_G',
+          'max_pack_kurtosis_G', 'max_pack_skew_G', 'max_zcr_G', 'max_rmse_G', 'max_spectral_flatness_G',
+          'max_spectral_rolloff_G', 'mean_pack_sum_G', 'mean_wavelet_var_coef_G', 'mean_cv_G', 'mean_mab_G',
+          'mean_imp_G', 'mean_wavelet_med_approx_G', 'mean_pack_kurtosis_G', 'mean_pack_skew_G',
+          'mean_centroid_frequency2_G', 'mean_centroid_frequency_G', 'mean_rmse_G', 'mean_len_G', 'mean_iqa_G',
+          'mean_wavelet_mean_coef_G', 'mean_wavelet_mean_approx_G', 'mean_spectral_flatness_G',
+          'mean_wavelet_var_approx_G', 'mean_median_freq_G', 'mean_flash_ind_G', 'mean_spectral_rolloff_G',
+          'mean_wavelet_med_coef_G', 'mean_zcr_G'
+    ]
+  simple:
+    mpa: [
+          'max_centroid_frequency_M', 'max_centroid_frequency2_M', 'max_median_freq_M', 'max_flash_ind_M',
+          'max_cv_M', 'max_iqa_M', 'max_mab_M', 'max_imp_M', 'max_len_M'
+    ]
+    spg: [
+          'max_centroid_frequency_G', 'max_centroid_frequency2_G', 'max_median_freq_G', 'max_flash_ind_G', 'max_cv_G',
+          'max_iqa_G', 'max_mab_G', 'max_imp_G', 'max_len_G'
+    ]
+    sps: [
+           'max_centroid_frequency_G', 'max_centroid_frequency2_G', 'max_median_freq_G', 'max_flash_ind_G', 'max_cv_G',
+           'max_iqa_G', 'max_mab_G', 'max_imp_G', 'max_len_G', 'max_centroid_frequency_M', 'max_centroid_frequency2_M',
+           'max_median_freq_M', 'max_flash_ind_M', 'max_cv_M', 'max_iqa_M', 'max_mab_M', 'max_imp_M', 'max_len_M',
+           'max_centroid_frequency_S', 'max_centroid_frequency2_S', 'max_median_freq_S', 'max_flash_ind_S', 'max_cv_S',
+           'max_iqa_S', 'max_mab_S', 'max_imp_S', 'max_len_S'
+    ]
+
+
