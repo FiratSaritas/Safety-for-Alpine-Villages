@@ -1,2 +1,5 @@
 # Safety-for-Alpine-Villages
-Project 5
+
+## Using Acoustic Signal to Predict Grain Size of Bedload Particles
+
+Bedload transport is a potentially hazardous environmental process that occurs in rivers during high-flow conditions. Indirect bedload transport measuring systems relying on acoustic impact sensors help to obtain measurements of high temporal resolution. In this work, we evaluated the use of machine learning approaches to predict the size of bedload particles based on indirect acoustic sensor measurements. Data from controlled field experiments was available for three measuring systems from the Swiss Federal Research Institute WSL: Swiss plate geophone (SPG), miniplate accelerometer (MPA), and square pipe system (SPS). A simple and a complex feature set (9 vs. 44 features for the SPG) were created from raw signals for all measuring systems. Out of 9 evaluated model types, CatBoost models in combination with the complex feature set performed best and achieved R2-scores above 0.8 for all measuring systems. Models trained on data of the most recently developed measuring system (SPS) achieved the best results with an R2-score of 0.84. Finally, a feature relevance analysis revealed that the spectral roll-off and spectral centroid contributed most to the model predictions. 
